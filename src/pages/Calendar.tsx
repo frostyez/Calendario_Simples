@@ -98,14 +98,17 @@ const Calendar = () => {
               onSelect={(newDate) => newDate && setDate(newDate)}
               className="rounded-md"
               components={{
-                DayContent: ({ day }) => {
+                DayContent: (props) => {
+                  // Access the date correctly from props
+                  const currentDate = props.date;
+                  
                   const dayEvents = events.filter(
-                    (event) => format(event.date, "yyyy-MM-dd") === format(day.date, "yyyy-MM-dd")
+                    (event) => format(event.date, "yyyy-MM-dd") === format(currentDate, "yyyy-MM-dd")
                   );
                   
                   return (
                     <div className="relative w-full h-full flex items-center justify-center">
-                      {day.date.getDate()}
+                      {currentDate.getDate()}
                       {dayEvents.length > 0 && (
                         <div className="absolute bottom-1 flex gap-1 justify-center">
                           {dayEvents.slice(0, 3).map((event, index) => (
