@@ -27,7 +27,6 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
-// Define the form schema with required fields matching Event type
 const formSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
   date: z.date({
@@ -37,13 +36,15 @@ const formSchema = z.object({
   color: z.string().default("#4f46e5"),
 });
 
+type FormData = z.infer<typeof formSchema>;
+
 type EventFormProps = {
   onAddEvent: (event: Omit<Event, "id">) => void;
   selectedDate: Date;
 };
 
 const EventForm = ({ onAddEvent, selectedDate }: EventFormProps) => {
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
@@ -53,10 +54,13 @@ const EventForm = ({ onAddEvent, selectedDate }: EventFormProps) => {
     },
   });
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    // Since our schema ensures these values are present or defaulted,
-    // the data will match the expected Omit<Event, "id"> type
-    onAddEvent(data);
+  const onSubmit = (data: FormData) => {
+    onAddEvent({
+      title: data.title,
+      date: data.date,
+      description: data.description,
+      color: data.color,
+    });
     form.reset();
     toast({
       title: "Evento adicionado",
