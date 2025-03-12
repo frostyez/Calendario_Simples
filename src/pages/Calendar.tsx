@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -51,7 +50,6 @@ const Calendar = () => {
     setEvents([...events, newEvent]);
   };
 
-  // Get events for the selected date
   const selectedDateEvents = events.filter(
     (event) => format(event.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
   );
@@ -99,9 +97,7 @@ const Calendar = () => {
               className="rounded-md"
               components={{
                 DayContent: (props) => {
-                  // Access the date correctly from props
                   const currentDate = props.date;
-                  
                   const dayEvents = events.filter(
                     (event) => format(event.date, "yyyy-MM-dd") === format(currentDate, "yyyy-MM-dd")
                   );
@@ -131,7 +127,7 @@ const Calendar = () => {
         <Card className="md:col-span-5 border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xl font-light">
-              {format(date, "d MMMM yyyy")}
+              {format(date, "MMMM yyyy")}
             </CardTitle>
             <Sheet>
               <SheetTrigger asChild>
