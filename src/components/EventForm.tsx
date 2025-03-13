@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Clock } from "lucide-react";
 import { format } from "date-fns";
 
 import { Event } from "@/pages/Calendar";
@@ -32,6 +32,7 @@ const formSchema = z.object({
   date: z.date({
     required_error: "Data é obrigatória",
   }),
+  time: z.string().optional(),
   description: z.string().optional(),
   color: z.string().default("#4f46e5"),
 });
@@ -49,15 +50,24 @@ const EventForm = ({ onAddEvent, selectedDate }: EventFormProps) => {
     defaultValues: {
       title: "",
       date: selectedDate,
+      time: format(new Date(), "HH:mm"),
       description: "",
       color: "#4f46e5",
     },
   });
 
   const onSubmit = (data: FormData) => {
+    const eventDate = new Date(data.date);
+    
+    // Se houver um horário definido, atualize a data com esse horário
+    if (data.time) {
+      const [hours, minutes] = data.time.split(':').map(Number);
+      eventDate.setHours(hours, minutes);
+    }
+    
     onAddEvent({
       title: data.title,
-      date: data.date,
+      date: eventDate,
       description: data.description,
       color: data.color,
     });
@@ -120,6 +130,27 @@ const EventForm = ({ onAddEvent, selectedDate }: EventFormProps) => {
                   />
                 </PopoverContent>
               </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="time"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Horário</FormLabel>
+              <FormControl>
+                <div className="flex items-center space-x-2">
+                  <Input 
+                    type="time" 
+                    className="w-full" 
+                    {...field} 
+                  />
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

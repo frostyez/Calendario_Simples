@@ -1,7 +1,7 @@
 
 import React from "react";
 import { format } from "date-fns";
-import { Clock } from "lucide-react";
+import { Clock, Calendar } from "lucide-react";
 import { Event } from "@/pages/Calendar";
 
 type EventListProps = {
@@ -33,9 +33,16 @@ const EventList = ({ events }: EventListProps) => {
             />
           </div>
           
-          <div className="flex items-center text-sm text-muted-foreground mt-1">
-            <Clock className="h-3.5 w-3.5 mr-1" />
-            {format(event.date, "HH:mm")}
+          <div className="flex flex-col gap-1 mt-2">
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Calendar className="h-3.5 w-3.5 mr-1" />
+              {format(event.date, "d 'de' MMMM 'de' yyyy")}
+            </div>
+            
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Clock className="h-3.5 w-3.5 mr-1" />
+              {format(event.date, "HH:mm")}
+            </div>
           </div>
           
           {event.description && (

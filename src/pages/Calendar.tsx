@@ -1,9 +1,10 @@
+
 import React, { useState } from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, List } from "lucide-react";
 import { 
   Sheet, 
   SheetContent, 
@@ -25,6 +26,7 @@ export type Event = {
 
 const Calendar = () => {
   const [date, setDate] = useState<Date>(new Date());
+  const [showAllEvents, setShowAllEvents] = useState(false);
   const [events, setEvents] = useState<Event[]>([
     {
       id: "1",
@@ -53,6 +55,9 @@ const Calendar = () => {
   const selectedDateEvents = events.filter(
     (event) => format(event.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
   );
+
+  // Ordena todos os eventos por data
+  const sortedEvents = [...events].sort((a, b) => a.date.getTime() - b.date.getTime());
 
   return (
     <div className="container mx-auto p-4 max-w-6xl animate-fade-in">
@@ -129,26 +134,48 @@ const Calendar = () => {
             <CardTitle className="text-xl font-light">
               {format(date, "MMMM yyyy")}
             </CardTitle>
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Evento
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <SheetHeader>
-                  <SheetTitle>Adicionar Evento</SheetTitle>
-                  <SheetDescription>
-                    Preencha os detalhes do novo evento
-                  </SheetDescription>
-                </SheetHeader>
-                <EventForm onAddEvent={handleAddEvent} selectedDate={date} />
-              </SheetContent>
-            </Sheet>
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowAllEvents(!showAllEvents)}
+                className="flex items-center gap-1"
+              >
+                <List className="h-4 w-4" />
+                {showAllEvents ? "Voltar" : "Todos Eventos"}
+              </Button>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Novo Evento
+                  </Button>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>Adicionar Evento</SheetTitle>
+                    <SheetDescription>
+                      Preencha os detalhes do novo evento
+                    </SheetDescription>
+                  </SheetHeader>
+                  <EventForm onAddEvent={handleAddEvent} selectedDate={date} />
+                </SheetContent>
+              </Sheet>
+            </div>
           </CardHeader>
           <CardContent>
-            <EventList events={selectedDateEvents} />
+            <div className="mb-2">
+              {showAllEvents ? (
+                <h3 className="text-sm font-medium text-muted-foreground mb-4">
+                  Mostrando todos os eventos
+                </h3>
+              ) : (
+                <h3 className="text-sm font-medium text-muted-foreground mb-4">
+                  {format(date, "d 'de' MMMM 'de' yyyy")}
+                </h3>
+              )}
+            </div>
+            <EventList events={showAllEvents ? sortedEvents : selectedDateEvents} />
           </CardContent>
         </Card>
       </div>
