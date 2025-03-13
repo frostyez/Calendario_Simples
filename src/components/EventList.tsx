@@ -1,14 +1,17 @@
 
 import React from "react";
 import { format } from "date-fns";
-import { Clock, Calendar } from "lucide-react";
+import { Clock, Calendar, Trash2 } from "lucide-react";
 import { Event } from "@/pages/Calendar";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 
 type EventListProps = {
   events: Event[];
+  onDeleteEvent?: (id: string) => void;
 };
 
-const EventList = ({ events }: EventListProps) => {
+const EventList = ({ events, onDeleteEvent }: EventListProps) => {
   if (events.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -16,6 +19,16 @@ const EventList = ({ events }: EventListProps) => {
       </div>
     );
   }
+
+  const handleDelete = (id: string) => {
+    if (onDeleteEvent) {
+      onDeleteEvent(id);
+      toast({
+        title: "Evento removido",
+        description: "O evento foi removido com sucesso."
+      });
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -27,10 +40,23 @@ const EventList = ({ events }: EventListProps) => {
         >
           <div className="flex justify-between items-start">
             <h3 className="font-medium">{event.title}</h3>
-            <div 
-              className="w-3 h-3 rounded-full" 
-              style={{ backgroundColor: event.color }}
-            />
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: event.color }}
+              />
+              {onDeleteEvent && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                  onClick={() => handleDelete(event.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span className="sr-only">Remover evento</span>
+                </Button>
+              )}
+            </div>
           </div>
           
           <div className="flex flex-col gap-1 mt-2">

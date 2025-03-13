@@ -51,6 +51,10 @@ const Calendar = () => {
     };
     setEvents([...events, newEvent]);
   };
+  
+  const handleDeleteEvent = (id: string) => {
+    setEvents(events.filter(event => event.id !== id));
+  };
 
   const selectedDateEvents = events.filter(
     (event) => format(event.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
@@ -175,7 +179,10 @@ const Calendar = () => {
                 </h3>
               )}
             </div>
-            <EventList events={showAllEvents ? sortedEvents : selectedDateEvents} />
+            <EventList 
+              events={showAllEvents ? sortedEvents : selectedDateEvents} 
+              onDeleteEvent={handleDeleteEvent}
+            />
           </CardContent>
         </Card>
       </div>
