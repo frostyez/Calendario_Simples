@@ -1,10 +1,9 @@
-
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { toast } from "sonner";
 
 interface User {
   id: string;
-  email: string;
+  email?: string;
   phone?: string;
 }
 
@@ -29,7 +28,6 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   
-  // Verificar se existe um usuário no localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -39,14 +37,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (emailOrPhone: string, password: string): Promise<boolean> => {
     try {
-      // Simulando uma verificação de usuário local
       const users = JSON.parse(localStorage.getItem("users") || "[]");
       const foundUser = users.find(
         (u: any) => (u.email === emailOrPhone || u.phone === emailOrPhone) && u.password === password
       );
 
       if (foundUser) {
-        // Remover a senha antes de armazenar no estado
         const { password: _, ...userWithoutPassword } = foundUser;
         setUser(userWithoutPassword);
         localStorage.setItem("user", JSON.stringify(userWithoutPassword));
@@ -65,13 +61,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (emailOrPhone: string, password: string): Promise<boolean> => {
     try {
-      // Verificando se é email ou telefone
       const isEmail = emailOrPhone.includes("@");
       
-      // Simulando um registro local
       const users = JSON.parse(localStorage.getItem("users") || "[]");
       
-      // Verificar se o usuário já existe
       const userExists = users.some(
         (u: any) => 
           (isEmail && u.email === emailOrPhone) || 
@@ -83,7 +76,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      // Criar novo usuário
       const newUser = {
         id: Math.random().toString(36).substring(2, 9),
         ...(isEmail ? { email: emailOrPhone } : { phone: emailOrPhone }),
@@ -93,7 +85,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       users.push(newUser);
       localStorage.setItem("users", JSON.stringify(users));
       
-      // Fazer login automático após o registro
       const { password: _, ...userWithoutPassword } = newUser;
       setUser(userWithoutPassword);
       localStorage.setItem("user", JSON.stringify(userWithoutPassword));
