@@ -28,16 +28,20 @@ export type Event = {
   userId?: string;
 };
 
-const Calendar = () => {
+interface CalendarProps {
+  anonymous?: boolean;
+}
+
+const Calendar = ({ anonymous = false }: CalendarProps) => {
   const [date, setDate] = useState<Date>(new Date());
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Carregar eventos do usuário a partir do localStorage quando o componente monta
+  // Load events from localStorage when component mounts, only for logged-in users
   useEffect(() => {
-    if (user) {
+    if (user && !anonymous) {
       const savedEvents = localStorage.getItem(`events_${user.id}`);
       if (savedEvents) {
         const parsedEvents = JSON.parse(savedEvents).map((event: any) => ({
@@ -47,21 +51,21 @@ const Calendar = () => {
         setEvents(parsedEvents);
       }
     }
-  }, [user]);
+  }, [user, anonymous]);
 
-  // Salvar eventos no localStorage sempre que eles mudarem
+  // Save events to localStorage when they change, only for logged-in users
   useEffect(() => {
-    if (user) {
+    if (user && !anonymous) {
       localStorage.setItem(`events_${user.id}`, JSON.stringify(events));
     }
-  }, [events, user]);
+  }, [events, user, anonymous]);
 
-  // Redirecionar para o login se não estiver autenticado
+  // Redirect to login if not authenticated and not anonymous
   useEffect(() => {
-    if (!user) {
+    if (!user && !anonymous) {
       navigate("/login");
     }
-  }, [user, navigate]);
+  }, [user, navigate, anonymous]);
 
   const handleAddEvent = (event: Omit<Event, "id">) => {
     const newEvent = {
@@ -87,19 +91,21 @@ const Calendar = () => {
     (event) => format(event.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
   );
 
-  // Ordena todos os eventos por data
+  // Sort all events by date
   const sortedEvents = [...events].sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  if (!user) return null;
+  if (!user && !anonymous) return null;
 
   return (
     <div className="container mx-auto p-4 max-w-6xl animate-fade-in">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-light text-center">Calendário Minimalista</h1>
-        <Button variant="outline" size="sm" onClick={handleLogout} className="flex items-center gap-1">
-          <LogOut className="h-4 w-4" />
-          Sair
-        </Button>
+        {!anonymous && (
+          <Button variant="outline" size="sm" onClick={handleLogout} className="flex items-center gap-1">
+            <LogOut className="h-4 w-4" />
+            Sair
+          </Button>
+        )}
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
