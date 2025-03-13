@@ -1,0 +1,108 @@
+
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ArrowRight, Mail, Phone, Lock } from "lucide-react";
+
+const Login = () => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [emailOrPhone, setEmailOrPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login, register } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const success = isLogin
+        ? await login(emailOrPhone, password)
+        : await register(emailOrPhone, password);
+
+      if (success) {
+        navigate("/calendar");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isEmail = emailOrPhone.includes("@");
+
+  return (
+    <div className="container flex items-center justify-center min-h-screen p-4 animate-fade-in">
+      <Card className="w-full max-w-md border-0 shadow-sm">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-light text-center">
+            {isLogin ? "Login" : "Cadastre-se"}
+          </CardTitle>
+          <CardDescription className="text-center">
+            {isLogin 
+              ? "Acesse para gerenciar seus eventos" 
+              : "Crie sua conta para gerenciar seus eventos"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="emailOrPhone">E-mail ou Telefone</Label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground">
+                  {isEmail ? <Mail className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
+                </div>
+                <Input
+                  id="emailOrPhone"
+                  placeholder="Digite seu e-mail ou telefone"
+                  value={emailOrPhone}
+                  onChange={(e) => setEmailOrPhone(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Digite sua senha"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+            <Button className="w-full" type="submit" disabled={loading}>
+              {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-center">
+          <Button
+            variant="link"
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-sm"
+          >
+            {isLogin
+              ? "Não tem uma conta? Cadastre-se"
+              : "Já tem uma conta? Faça login"}
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+};
+
+export default Login;
