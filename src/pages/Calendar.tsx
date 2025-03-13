@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -27,22 +26,7 @@ export type Event = {
 const Calendar = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [showAllEvents, setShowAllEvents] = useState(false);
-  const [events, setEvents] = useState<Event[]>([
-    {
-      id: "1",
-      title: "Meeting with Team",
-      date: new Date(),
-      description: "Discuss project progress",
-      color: "#4f46e5",
-    },
-    {
-      id: "2",
-      title: "Lunch with Client",
-      date: new Date(new Date().setDate(new Date().getDate() + 2)),
-      description: "Discuss new requirements",
-      color: "#f97316",
-    },
-  ]);
+  const [events, setEvents] = useState<Event[]>([]);
 
   const handleAddEvent = (event: Omit<Event, "id">) => {
     const newEvent = {
