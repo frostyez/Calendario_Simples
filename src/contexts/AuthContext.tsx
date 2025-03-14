@@ -9,7 +9,7 @@ interface AuthContextType {
   session: Session | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string, captchaToken: string | null) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
@@ -67,11 +67,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string): Promise<boolean> => {
+  const register = async (email: string, password: string, captchaToken: string | null): Promise<boolean> => {
     try {
+      if (!captchaToken) {
+        toast.error("Verificação de captcha obrigatória");
+        return false;
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          captchaToken
+        }
       });
 
       if (error) {
