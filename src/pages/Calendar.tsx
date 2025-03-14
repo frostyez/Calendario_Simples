@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import EventForm from "@/components/EventForm";
 import EventList from "@/components/EventList";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export type Event = {
   id: string;
@@ -25,7 +26,7 @@ export type Event = {
   date: Date;
   description?: string;
   color?: string;
-  userId?: string;
+  user_id?: string;
 };
 
 interface CalendarProps {
@@ -36,29 +37,65 @@ const Calendar = ({ anonymous = false }: CalendarProps) => {
   const [date, setDate] = useState<Date>(new Date());
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Load events from localStorage when component mounts, only for logged-in users
-  useEffect(() => {
-    if (user && !anonymous) {
-      const savedEvents = localStorage.getItem(`events_${user.id}`);
-      if (savedEvents) {
-        const parsedEvents = JSON.parse(savedEvents).map((event: any) => ({
+  // Buscar eventos do Supabase quando o componente montar
+  const fetchEvents = async () => {
+    if (!user && !anonymous) return;
+    
+    setLoading(true);
+    try {
+      if (anonymous) {
+        // Para modo anônimo, usar localStorage
+        const savedEvents = localStorage.getItem("anonymous_events");
+        if (savedEvents) {
+          const parsedEvents = JSON.parse(savedEvents).map((event: any) => ({
+            ...event,
+            date: new Date(event.date)
+          }));
+          setEvents(parsedEvents);
+        }
+      } else {
+        // Buscar eventos do Supabase para usuários autenticados
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('user_id', user?.id);
+          
+        if (error) {
+          console.error("Erro ao buscar eventos:", error);
+          toast.error("Erro ao carregar eventos");
+          return;
+        }
+        
+        // Converter datas de string para objeto Date
+        const eventsWithDateObjects = data.map((event: any) => ({
           ...event,
           date: new Date(event.date)
         }));
-        setEvents(parsedEvents);
+        
+        setEvents(eventsWithDateObjects);
       }
+    } catch (error) {
+      console.error("Erro ao carregar eventos:", error);
+      toast.error("Erro ao carregar eventos");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchEvents();
   }, [user, anonymous]);
 
-  // Save events to localStorage when they change, only for logged-in users
+  // Salvar eventos no localStorage para modo anônimo
   useEffect(() => {
-    if (user && !anonymous) {
-      localStorage.setItem(`events_${user.id}`, JSON.stringify(events));
+    if (anonymous) {
+      localStorage.setItem("anonymous_events", JSON.stringify(events));
     }
-  }, [events, user, anonymous]);
+  }, [events, anonymous]);
 
   // Redirect to login if not authenticated and not anonymous
   useEffect(() => {
@@ -67,23 +104,80 @@ const Calendar = ({ anonymous = false }: CalendarProps) => {
     }
   }, [user, navigate, anonymous]);
 
-  const handleAddEvent = (event: Omit<Event, "id">) => {
-    const newEvent = {
-      ...event,
-      id: Math.random().toString(36).substring(2, 9),
-      userId: user?.id
-    };
-    setEvents([...events, newEvent]);
-    toast.success("Evento adicionado com sucesso!");
+  const handleAddEvent = async (event: Omit<Event, "id">) => {
+    if (anonymous) {
+      // Modo anônimo: salvar no localStorage
+      const newEvent = {
+        ...event,
+        id: Math.random().toString(36).substring(2, 9)
+      };
+      setEvents([...events, newEvent]);
+      toast.success("Evento adicionado com sucesso!");
+    } else {
+      // Modo autenticado: salvar no Supabase
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .insert([{
+            title: event.title,
+            date: event.date.toISOString(),
+            description: event.description,
+            color: event.color,
+            user_id: user?.id
+          }])
+          .select();
+          
+        if (error) {
+          console.error("Erro ao adicionar evento:", error);
+          toast.error("Erro ao adicionar evento");
+          return;
+        }
+        
+        // Adicionar o novo evento à lista com a data como objeto Date
+        const newEvent = {
+          ...data[0],
+          date: new Date(data[0].date)
+        };
+        
+        setEvents([...events, newEvent]);
+        toast.success("Evento adicionado com sucesso!");
+      } catch (error) {
+        console.error("Erro ao adicionar evento:", error);
+        toast.error("Erro ao adicionar evento");
+      }
+    }
   };
   
-  const handleDeleteEvent = (id: string) => {
-    setEvents(events.filter(event => event.id !== id));
-    toast.success("Evento removido com sucesso!");
+  const handleDeleteEvent = async (id: string) => {
+    if (anonymous) {
+      // Modo anônimo: remover do estado e localStorage
+      setEvents(events.filter(event => event.id !== id));
+      toast.success("Evento removido com sucesso!");
+    } else {
+      // Modo autenticado: remover do Supabase
+      try {
+        const { error } = await supabase
+          .from('events')
+          .delete()
+          .eq('id', id);
+          
+        if (error) {
+          console.error("Erro ao remover evento:", error);
+          toast.error("Erro ao remover evento");
+          return;
+        }
+        
+        setEvents(events.filter(event => event.id !== id));
+        toast.success("Evento removido com sucesso!");
+      } catch (error) {
+        console.error("Erro ao remover evento:", error);
+        toast.error("Erro ao remover evento");
+      }
+    }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
@@ -220,10 +314,16 @@ const Calendar = ({ anonymous = false }: CalendarProps) => {
                 </h3>
               )}
             </div>
-            <EventList 
-              events={showAllEvents ? sortedEvents : selectedDateEvents} 
-              onDeleteEvent={handleDeleteEvent}
-            />
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Carregando eventos...
+              </div>
+            ) : (
+              <EventList 
+                events={showAllEvents ? sortedEvents : selectedDateEvents} 
+                onDeleteEvent={handleDeleteEvent}
+              />
+            )}
           </CardContent>
         </Card>
       </div>

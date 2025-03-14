@@ -1,22 +1,29 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, Mail, Phone, Lock } from "lucide-react";
+import { ArrowRight, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const [emailOrPhone, setEmailOrPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login, register } = useAuth();
+  const { login, register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Redirecionar se já estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/calendar");
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,8 +37,8 @@ const Login = () => {
       }
 
       const success = isLogin
-        ? await login(emailOrPhone, password)
-        : await register(emailOrPhone, password);
+        ? await login(email, password)
+        : await register(email, password);
 
       if (success) {
         navigate("/calendar");
@@ -40,8 +47,6 @@ const Login = () => {
       setLoading(false);
     }
   };
-
-  const isEmail = emailOrPhone.includes("@");
 
   return (
     <div className="container flex items-center justify-center min-h-screen p-4 animate-fade-in">
@@ -59,16 +64,17 @@ const Login = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="emailOrPhone">E-mail ou Telefone</Label>
+              <Label htmlFor="email">E-mail</Label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground">
-                  {isEmail ? <Mail className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
+                  <Mail className="w-4 h-4" />
                 </div>
                 <Input
-                  id="emailOrPhone"
-                  placeholder="Digite seu e-mail ou telefone"
-                  value={emailOrPhone}
-                  onChange={(e) => setEmailOrPhone(e.target.value)}
+                  id="email"
+                  type="email"
+                  placeholder="Digite seu e-mail"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
                   required
                 />
