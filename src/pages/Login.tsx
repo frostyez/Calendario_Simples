@@ -19,6 +19,7 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaLoaded, setCaptchaLoaded] = useState(false);
   const { login, register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -31,20 +32,30 @@ const Login = () => {
 
   // Carregar o script do Turnstile (Cloudflare Captcha)
   useEffect(() => {
-    const loadTurnstile = () => {
-      const existingScript = document.getElementById('cf-turnstile-script');
-      if (!existingScript) {
-        const script = document.createElement('script');
-        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-        script.async = true;
-        script.defer = true;
-        script.id = 'cf-turnstile-script';
-        document.body.appendChild(script);
-      }
-    };
+    // Remover o script existente quando alternar modos
+    const existingScript = document.getElementById('cf-turnstile-script');
+    if (existingScript) {
+      document.body.removeChild(existingScript);
+      setCaptchaLoaded(false);
+    }
 
     if (!isLogin) {
-      loadTurnstile();
+      const script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.defer = true;
+      script.id = 'cf-turnstile-script';
+      script.onload = () => {
+        setCaptchaLoaded(true);
+        renderCaptcha();
+      };
+      document.body.appendChild(script);
+      
+      // Definir callback global para o captcha
+      window.turnstileCallback = (token: string) => {
+        console.log("Captcha token recebido:", token);
+        setCaptchaToken(token);
+      };
       
       // Limpar função de callback ao desmontar
       return () => {
@@ -53,24 +64,36 @@ const Login = () => {
     }
   }, [isLogin]);
 
-  // Renderizar o captcha quando o script estiver carregado
-  useEffect(() => {
-    if (!isLogin && window.turnstile) {
-      // Definir callback para o captcha
-      window.turnstileCallback = (token: string) => {
-        setCaptchaToken(token);
-      };
-
-      // Renderizar o widget do captcha
+  // Função para renderizar o captcha quando o script estiver carregado
+  const renderCaptcha = () => {
+    if (!isLogin && window.turnstile && captchaLoaded) {
+      console.log("Renderizando captcha...");
       const turnstileContainer = document.getElementById('cf-turnstile-container');
-      if (turnstileContainer && turnstileContainer.childElementCount === 0) {
-        window.turnstile.render('#cf-turnstile-container', {
-          sitekey: SITE_KEY,
-          callback: 'turnstileCallback',
-        });
+      if (turnstileContainer) {
+        // Limpar o contêiner primeiro
+        turnstileContainer.innerHTML = '';
+        
+        // Renderizar o widget do captcha
+        try {
+          window.turnstile.render('#cf-turnstile-container', {
+            sitekey: SITE_KEY,
+            callback: 'turnstileCallback',
+            'refresh-expired': 'auto'
+          });
+          console.log("Captcha renderizado com sucesso");
+        } catch (error) {
+          console.error("Erro ao renderizar captcha:", error);
+        }
+      } else {
+        console.error("Contêiner do captcha não encontrado");
       }
     }
-  }, [isLogin]);
+  };
+
+  // Renderizar o captcha quando o script estiver carregado
+  useEffect(() => {
+    renderCaptcha();
+  }, [captchaLoaded, isLogin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +102,12 @@ const Login = () => {
     try {
       if (!isLogin && password !== confirmPassword) {
         toast.error("As senhas não coincidem");
+        setLoading(false);
+        return;
+      }
+
+      if (!isLogin && !captchaToken) {
+        toast.error("Por favor, complete a verificação de segurança");
         setLoading(false);
         return;
       }
@@ -99,13 +128,6 @@ const Login = () => {
     setIsLogin(!isLogin);
     setConfirmPassword(""); // Limpar o campo de confirmação ao alternar
     setCaptchaToken(null); // Limpar token do captcha
-    
-    // Recarregar o captcha quando mudar para registro
-    if (isLogin && window.turnstile) {
-      setTimeout(() => {
-        window.turnstile.reset();
-      }, 100);
-    }
   };
 
   return (
@@ -180,12 +202,24 @@ const Login = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="captcha">Verificação de Segurança</Label>
-                  <div id="cf-turnstile-container" className="flex justify-center mt-2"></div>
+                  <div 
+                    id="cf-turnstile-container" 
+                    className="flex justify-center mt-2 min-h-16 border border-gray-200 rounded-md p-2"
+                  ></div>
+                  {!captchaToken && !captchaLoaded && (
+                    <div className="text-center text-sm text-muted-foreground mt-2">
+                      Carregando verificação de segurança...
+                    </div>
+                  )}
                 </div>
               </>
             )}
             
-            <Button className="w-full" type="submit" disabled={loading || (!isLogin && !captchaToken)}>
+            <Button 
+              className="w-full" 
+              type="submit" 
+              disabled={loading || (!isLogin && !captchaToken)}
+            >
               {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
