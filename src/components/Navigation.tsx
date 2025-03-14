@@ -34,9 +34,9 @@ const Navigation = () => {
       
       {!isAuthenticated && window.location.pathname === '/calendar-anonymous' && (
         <div className="container mx-auto px-4 pb-2">
-          <Alert variant="warning" className="bg-amber-50 border-amber-200">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-700">
+          <Alert variant="warning" className="bg-amber-50">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
               Você está usando o calendário sem estar logado. Seus eventos não serão salvos quando sair da página.
             </AlertDescription>
           </Alert>
