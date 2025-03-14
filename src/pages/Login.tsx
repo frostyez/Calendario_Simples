@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, Mail, Phone, Lock } from "lucide-react";
+import { toast } from "sonner";
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [emailOrPhone, setEmailOrPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
@@ -21,6 +23,12 @@ const Login = () => {
     setLoading(true);
 
     try {
+      if (!isLogin && password !== confirmPassword) {
+        toast.error("As senhas não coincidem");
+        setLoading(false);
+        return;
+      }
+
       const success = isLogin
         ? await login(emailOrPhone, password)
         : await register(emailOrPhone, password);
@@ -83,6 +91,27 @@ const Login = () => {
                 />
               </div>
             </div>
+            
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirme sua senha"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+            
             <Button className="w-full" type="submit" disabled={loading}>
               {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
               <ArrowRight className="w-4 h-4 ml-2" />
@@ -92,7 +121,10 @@ const Login = () => {
         <CardFooter className="flex justify-center">
           <Button
             variant="link"
-            onClick={() => setIsLogin(!isLogin)}
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setConfirmPassword(""); // Limpar o campo de confirmação ao alternar
+            }}
             className="text-sm"
           >
             {isLogin
