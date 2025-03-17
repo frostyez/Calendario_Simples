@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +9,7 @@ interface AuthContextType {
   session: Session | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string) => Promise<{success: boolean; rateLimited: boolean}>;
+  register: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
@@ -64,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string): Promise<{success: boolean; rateLimited: boolean}> => {
+  const register = async (email: string, password: string): Promise<boolean> => {
     try {
       const { error } = await supabase.auth.signUp({
         email,
@@ -72,38 +73,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        if (
-          error.message.toLowerCase().includes("rate limit") || 
-          error.message.toLowerCase().includes("too many requests") ||
-          error.status === 429
-        ) {
-          toast.error("Muitas tentativas de cadastro. Por favor, aguarde alguns minutos antes de tentar novamente.");
-          return { success: false, rateLimited: true };
-        } else {
-          toast.error(error.message);
-          return { success: false, rateLimited: false };
-        }
+        toast.error(error.message);
+        return false;
       }
 
       toast.success("Cadastro realizado com sucesso! Verifique seu email para confirmação.");
-      return { success: true, rateLimited: false };
-    } catch (error: any) {
+      return true;
+    } catch (error) {
       console.error("Erro ao registrar:", error);
-      
-      if (
-        (error.message && (
-          error.message.includes("NetworkError") || 
-          error.message.toLowerCase().includes("rate limit") ||
-          error.message.toLowerCase().includes("too many requests")
-        )) || 
-        (error.status && error.status === 429)
-      ) {
-        toast.error("Problema de conexão ou muitas tentativas. Tente novamente mais tarde.");
-        return { success: false, rateLimited: true };
-      }
-      
       toast.error("Erro ao registrar. Tente novamente mais tarde.");
-      return { success: false, rateLimited: false };
+      return false;
     }
   };
 

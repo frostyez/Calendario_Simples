@@ -6,10 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, Mail, Lock, AlertCircle, Clock } from "lucide-react";
+import { ArrowRight, Mail, Lock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-
-const COOLDOWN_TIME = 60; // 60 seconds cooldown
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,64 +15,8 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
   const { login, register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-
-  // Check for existing cooldown on component mount
-  useEffect(() => {
-    const checkCooldown = () => {
-      const lastAttemptTime = localStorage.getItem('lastRegistrationAttempt');
-      if (lastAttemptTime) {
-        const lastTime = parseInt(lastAttemptTime, 10);
-        const now = Date.now();
-        const elapsedSeconds = Math.floor((now - lastTime) / 1000);
-        
-        if (elapsedSeconds < COOLDOWN_TIME) {
-          setCooldown(COOLDOWN_TIME - elapsedSeconds);
-        } else {
-          // Clear expired cooldown
-          localStorage.removeItem('lastRegistrationAttempt');
-        }
-      }
-    };
-    
-    checkCooldown();
-    
-    // Check cooldown when the tab becomes visible again
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        checkCooldown();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-
-  // Countdown timer for cooldown
-  useEffect(() => {
-    let intervalId: number;
-    
-    if (cooldown > 0) {
-      intervalId = window.setInterval(() => {
-        setCooldown(prev => {
-          const newValue = Math.max(0, prev - 1);
-          if (newValue === 0) {
-            // Clear cooldown when it reaches zero
-            localStorage.removeItem('lastRegistrationAttempt');
-          }
-          return newValue;
-        });
-      }, 1000);
-    }
-    
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [cooldown]);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -83,20 +25,8 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  const startCooldown = () => {
-    const now = Date.now();
-    setCooldown(COOLDOWN_TIME);
-    localStorage.setItem('lastRegistrationAttempt', now.toString());
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!isLogin && cooldown > 0) {
-      toast.error(`Aguarde ${cooldown} segundos antes de tentar novamente.`);
-      return;
-    }
-    
     setLoading(true);
 
     try {
@@ -112,20 +42,12 @@ const Login = () => {
           navigate("/calendar");
         }
       } else {
-        const { success, rateLimited } = await register(email, password);
-        
+        const success = await register(email, password);
         if (success) {
           toast.success("Verifique seu email para ativar sua conta.");
-          // Reset form after successful registration
           setEmail("");
           setPassword("");
           setConfirmPassword("");
-          toggleMode(); // Switch to login mode
-        }
-        
-        // Only start cooldown if rate limited
-        if (rateLimited) {
-          startCooldown();
         }
       }
     } finally {
@@ -208,24 +130,12 @@ const Login = () => {
                   </div>
                 </div>
                 
-                {/* Cooldown information */}
-                {cooldown > 0 && (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
-                    <div className="flex items-start">
-                      <Clock className="w-5 h-5 text-amber-500 mr-2 mt-0.5" />
-                      <p className="text-sm text-amber-700">
-                        Aguarde {cooldown} segundos antes de tentar novamente.
-                      </p>
-                    </div>
-                  </div>
-                )}
-                
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
                   <div className="flex items-start">
                     <AlertCircle className="w-5 h-5 text-amber-500 mr-2 mt-0.5" />
                     <p className="text-sm text-amber-700">
                       Após o cadastro, você receberá um email de confirmação. 
-                      Caso não receba, aguarde alguns minutos antes de tentar novamente.
+                      Caso não receba, verifique sua caixa de spam.
                     </p>
                   </div>
                 </div>
@@ -235,7 +145,7 @@ const Login = () => {
             <Button 
               className="w-full" 
               type="submit" 
-              disabled={loading || (!isLogin && cooldown > 0)}
+              disabled={loading}
             >
               {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
               <ArrowRight className="w-4 h-4 ml-2" />
