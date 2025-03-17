@@ -9,7 +9,7 @@ interface AuthContextType {
   session: Session | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, captchaToken: string | null) => Promise<boolean>;
+  register: (email: string, password: string) => Promise<{success: boolean; rateLimited: boolean}>;
   logout: () => Promise<void>;
 }
 
@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string, captchaToken: string | null): Promise<boolean> => {
+  const register = async (email: string, password: string): Promise<{success: boolean; rateLimited: boolean}> => {
     try {
       const { error } = await supabase.auth.signUp({
         email,
@@ -75,21 +75,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        // Verificar especificamente o erro de limite de taxa de email
+        // Check for rate limit error specifically
         if (error.message.includes("email rate limit exceeded")) {
           toast.error("Muitas tentativas de cadastro. Por favor, aguarde alguns minutos antes de tentar novamente.");
+          return { success: false, rateLimited: true };
         } else {
           toast.error(error.message);
+          return { success: false, rateLimited: false };
         }
-        return false;
       }
 
       toast.success("Cadastro realizado com sucesso! Verifique seu email para confirmação.");
-      return true;
-    } catch (error) {
+      return { success: true, rateLimited: false };
+    } catch (error: any) {
       console.error("Erro ao registrar:", error);
-      toast.error("Erro ao registrar");
-      return false;
+      
+      // Network errors might also indicate rate limiting
+      if (error.message && error.message.includes("NetworkError")) {
+        toast.error("Problema de conexão ou muitas tentativas. Tente novamente mais tarde.");
+        return { success: false, rateLimited: true };
+      }
+      
+      toast.error("Erro ao registrar. Tente novamente mais tarde.");
+      return { success: false, rateLimited: false };
     }
   };
 
