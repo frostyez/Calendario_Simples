@@ -69,20 +69,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (email: string, password: string, captchaToken: string | null): Promise<boolean> => {
     try {
-      // Não vamos mais verificar o captchaToken já que foi removido no Supabase
-
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        // Não incluímos mais a opção captchaToken
       });
 
       if (error) {
-        toast.error(error.message);
+        // Verificar especificamente o erro de limite de taxa de email
+        if (error.message.includes("email rate limit exceeded")) {
+          toast.error("Muitas tentativas de cadastro. Por favor, aguarde alguns minutos antes de tentar novamente.");
+        } else {
+          toast.error(error.message);
+        }
         return false;
       }
 
-      toast.success("Cadastro realizado com sucesso!");
+      toast.success("Cadastro realizado com sucesso! Verifique seu email para confirmação.");
       return true;
     } catch (error) {
       console.error("Erro ao registrar:", error);

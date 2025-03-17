@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, Mail, Lock } from "lucide-react";
+import { ArrowRight, Mail, Lock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 const Login = () => {
@@ -15,6 +15,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [lastAttempt, setLastAttempt] = useState(0);
   const { login, register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -27,6 +28,14 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Verificar se há tentativas muito frequentes (a cada 30 segundos)
+    const now = Date.now();
+    if (!isLogin && now - lastAttempt < 30000) {
+      toast.error("Por favor, aguarde 30 segundos antes de tentar cadastrar novamente.");
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -41,7 +50,14 @@ const Login = () => {
         : await register(email, password, null);
 
       if (success) {
-        navigate("/calendar");
+        if (isLogin) {
+          navigate("/calendar");
+        } else {
+          // Atualizar o timestamp da última tentativa
+          setLastAttempt(Date.now());
+          // Não redireciona após cadastro, pois precisa confirmar o email
+          toast.info("Verifique seu email para ativar sua conta.");
+        }
       }
     } finally {
       setLoading(false);
@@ -104,23 +120,35 @@ const Login = () => {
             </div>
             
             {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground">
-                    <Lock className="w-4 h-4" />
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="Confirme sua senha"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
                   </div>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Confirme sua senha"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
                 </div>
-              </div>
+                
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                  <div className="flex items-start">
+                    <AlertCircle className="w-5 h-5 text-amber-500 mr-2 mt-0.5" />
+                    <p className="text-sm text-amber-700">
+                      Após o cadastro, você receberá um email de confirmação. 
+                      Caso não receba, aguarde alguns minutos antes de tentar novamente.
+                    </p>
+                  </div>
+                </div>
+              </>
             )}
             
             <Button 
