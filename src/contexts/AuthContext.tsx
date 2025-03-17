@@ -69,17 +69,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (email: string, password: string, captchaToken: string | null): Promise<boolean> => {
     try {
-      if (!captchaToken) {
-        toast.error("Verificação de captcha obrigatória");
-        return false;
-      }
+      // Não vamos mais verificar o captchaToken já que foi removido no Supabase
 
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          captchaToken
-        }
+        // Não incluímos mais a opção captchaToken
       });
 
       if (error) {
