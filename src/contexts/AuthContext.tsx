@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,14 +28,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    // Verificar sessão atual ao carregar
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Configurar listener para mudanças na autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -75,8 +72,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        // Check for rate limit error specifically
-        if (error.message.includes("email rate limit exceeded")) {
+        if (
+          error.message.toLowerCase().includes("rate limit") || 
+          error.message.toLowerCase().includes("too many requests") ||
+          error.status === 429
+        ) {
           toast.error("Muitas tentativas de cadastro. Por favor, aguarde alguns minutos antes de tentar novamente.");
           return { success: false, rateLimited: true };
         } else {
@@ -90,8 +90,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       console.error("Erro ao registrar:", error);
       
-      // Network errors might also indicate rate limiting
-      if (error.message && error.message.includes("NetworkError")) {
+      if (
+        (error.message && (
+          error.message.includes("NetworkError") || 
+          error.message.toLowerCase().includes("rate limit") ||
+          error.message.toLowerCase().includes("too many requests")
+        )) || 
+        (error.status && error.status === 429)
+      ) {
         toast.error("Problema de conexão ou muitas tentativas. Tente novamente mais tarde.");
         return { success: false, rateLimited: true };
       }

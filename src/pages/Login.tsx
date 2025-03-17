@@ -18,9 +18,41 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [lastAttemptTime, setLastAttemptTime] = useState(0);
   const { login, register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Check for existing cooldown on component mount
+  useEffect(() => {
+    const checkCooldown = () => {
+      const lastAttemptTime = localStorage.getItem('lastRegistrationAttempt');
+      if (lastAttemptTime) {
+        const lastTime = parseInt(lastAttemptTime, 10);
+        const now = Date.now();
+        const elapsedSeconds = Math.floor((now - lastTime) / 1000);
+        
+        if (elapsedSeconds < COOLDOWN_TIME) {
+          setCooldown(COOLDOWN_TIME - elapsedSeconds);
+        } else {
+          // Clear expired cooldown
+          localStorage.removeItem('lastRegistrationAttempt');
+        }
+      }
+    };
+    
+    checkCooldown();
+    
+    // Check cooldown when the tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkCooldown();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   // Countdown timer for cooldown
   useEffect(() => {
@@ -28,7 +60,14 @@ const Login = () => {
     
     if (cooldown > 0) {
       intervalId = window.setInterval(() => {
-        setCooldown(prev => Math.max(0, prev - 1));
+        setCooldown(prev => {
+          const newValue = Math.max(0, prev - 1);
+          if (newValue === 0) {
+            // Clear cooldown when it reaches zero
+            localStorage.removeItem('lastRegistrationAttempt');
+          }
+          return newValue;
+        });
       }, 1000);
     }
     
@@ -36,21 +75,6 @@ const Login = () => {
       if (intervalId) clearInterval(intervalId);
     };
   }, [cooldown]);
-
-  // Load last attempt time from localStorage
-  useEffect(() => {
-    const storedTime = localStorage.getItem('lastRegistrationAttempt');
-    if (storedTime) {
-      const lastTime = parseInt(storedTime, 10);
-      const now = Date.now();
-      const elapsedSeconds = Math.floor((now - lastTime) / 1000);
-      
-      if (elapsedSeconds < COOLDOWN_TIME) {
-        setLastAttemptTime(lastTime);
-        setCooldown(COOLDOWN_TIME - elapsedSeconds);
-      }
-    }
-  }, []);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -61,7 +85,6 @@ const Login = () => {
 
   const startCooldown = () => {
     const now = Date.now();
-    setLastAttemptTime(now);
     setCooldown(COOLDOWN_TIME);
     localStorage.setItem('lastRegistrationAttempt', now.toString());
   };
@@ -92,16 +115,16 @@ const Login = () => {
         const { success, rateLimited } = await register(email, password);
         
         if (success) {
-          toast.info("Verifique seu email para ativar sua conta.");
+          toast.success("Verifique seu email para ativar sua conta.");
           // Reset form after successful registration
           setEmail("");
           setPassword("");
           setConfirmPassword("");
-          toggleMode();
+          toggleMode(); // Switch to login mode
         }
         
-        // Start cooldown if registration was successful or rate limited
-        if (success || rateLimited) {
+        // Only start cooldown if rate limited
+        if (rateLimited) {
           startCooldown();
         }
       }
