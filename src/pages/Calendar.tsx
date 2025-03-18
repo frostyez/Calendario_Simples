@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, List, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, List } from "lucide-react";
 import { 
   Sheet, 
   SheetContent, 
@@ -13,12 +13,9 @@ import {
   SheetTitle, 
   SheetTrigger 
 } from "@/components/ui/sheet";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import EventForm from "@/components/EventForm";
 import EventList from "@/components/EventList";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 
 export type Event = {
   id: string;
@@ -26,159 +23,53 @@ export type Event = {
   date: Date;
   description?: string;
   color?: string;
-  user_id?: string;
 };
 
-interface CalendarProps {
-  anonymous?: boolean;
-}
-
-const Calendar = ({ anonymous = false }: CalendarProps) => {
+const Calendar = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  // Buscar eventos do Supabase quando o componente montar
-  const fetchEvents = async () => {
-    if (!user && !anonymous) return;
-    
+  // Load events from localStorage
+  useEffect(() => {
     setLoading(true);
     try {
-      if (anonymous) {
-        // Para modo anônimo, usar localStorage
-        const savedEvents = localStorage.getItem("anonymous_events");
-        if (savedEvents) {
-          const parsedEvents = JSON.parse(savedEvents).map((event: any) => ({
-            ...event,
-            date: new Date(event.date)
-          }));
-          setEvents(parsedEvents);
-        }
-      } else {
-        // Buscar eventos do Supabase para usuários autenticados
-        const { data, error } = await supabase
-          .from('events')
-          .select('*')
-          .eq('user_id', user?.id);
-          
-        if (error) {
-          console.error("Erro ao buscar eventos:", error);
-          toast.error("Erro ao carregar eventos");
-          return;
-        }
-        
-        // Converter datas de string para objeto Date
-        const eventsWithDateObjects = data.map((event: any) => ({
+      const savedEvents = localStorage.getItem("calendar_events");
+      if (savedEvents) {
+        const parsedEvents = JSON.parse(savedEvents).map((event: any) => ({
           ...event,
           date: new Date(event.date)
         }));
-        
-        setEvents(eventsWithDateObjects);
+        setEvents(parsedEvents);
       }
     } catch (error) {
-      console.error("Erro ao carregar eventos:", error);
-      toast.error("Erro ao carregar eventos");
+      console.error("Error loading events:", error);
+      toast.error("Error loading events");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
+  // Save events to localStorage when they change
   useEffect(() => {
-    fetchEvents();
-  }, [user, anonymous]);
-
-  // Salvar eventos no localStorage para modo anônimo
-  useEffect(() => {
-    if (anonymous) {
-      localStorage.setItem("anonymous_events", JSON.stringify(events));
-    }
-  }, [events, anonymous]);
-
-  // Redirect to login if not authenticated and not anonymous
-  useEffect(() => {
-    if (!user && !anonymous) {
-      navigate("/login");
-    }
-  }, [user, navigate, anonymous]);
+    localStorage.setItem("calendar_events", JSON.stringify(events));
+  }, [events]);
 
   const handleAddEvent = async (event: Omit<Event, "id">) => {
-    if (anonymous) {
-      // Modo anônimo: salvar no localStorage
-      const newEvent = {
-        ...event,
-        id: Math.random().toString(36).substring(2, 9)
-      };
-      setEvents([...events, newEvent]);
-      toast.success("Evento adicionado com sucesso!");
-    } else {
-      // Modo autenticado: salvar no Supabase
-      try {
-        const { data, error } = await supabase
-          .from('events')
-          .insert([{
-            title: event.title,
-            date: event.date.toISOString(),
-            description: event.description,
-            color: event.color,
-            user_id: user?.id
-          }])
-          .select();
-          
-        if (error) {
-          console.error("Erro ao adicionar evento:", error);
-          toast.error("Erro ao adicionar evento");
-          return;
-        }
-        
-        // Adicionar o novo evento à lista com a data como objeto Date
-        const newEvent = {
-          ...data[0],
-          date: new Date(data[0].date)
-        };
-        
-        setEvents([...events, newEvent]);
-        toast.success("Evento adicionado com sucesso!");
-      } catch (error) {
-        console.error("Erro ao adicionar evento:", error);
-        toast.error("Erro ao adicionar evento");
-      }
-    }
+    // Save to localStorage
+    const newEvent = {
+      ...event,
+      id: Math.random().toString(36).substring(2, 9)
+    };
+    setEvents([...events, newEvent]);
+    toast.success("Event added successfully!");
   };
   
   const handleDeleteEvent = async (id: string) => {
-    if (anonymous) {
-      // Modo anônimo: remover do estado e localStorage
-      setEvents(events.filter(event => event.id !== id));
-      toast.success("Evento removido com sucesso!");
-    } else {
-      // Modo autenticado: remover do Supabase
-      try {
-        const { error } = await supabase
-          .from('events')
-          .delete()
-          .eq('id', id);
-          
-        if (error) {
-          console.error("Erro ao remover evento:", error);
-          toast.error("Erro ao remover evento");
-          return;
-        }
-        
-        setEvents(events.filter(event => event.id !== id));
-        toast.success("Evento removido com sucesso!");
-      } catch (error) {
-        console.error("Erro ao remover evento:", error);
-        toast.error("Erro ao remover evento");
-      }
-    }
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login");
+    // Remove from localStorage
+    setEvents(events.filter(event => event.id !== id));
+    toast.success("Event removed successfully!");
   };
 
   const selectedDateEvents = events.filter(
@@ -188,18 +79,10 @@ const Calendar = ({ anonymous = false }: CalendarProps) => {
   // Sort all events by date
   const sortedEvents = [...events].sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  if (!user && !anonymous) return null;
-
   return (
     <div className="container mx-auto p-4 max-w-6xl animate-fade-in">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-light text-center">Calendário Minimalista</h1>
-        {!anonymous && (
-          <Button variant="outline" size="sm" onClick={handleLogout} className="flex items-center gap-1">
-            <LogOut className="h-4 w-4" />
-            Sair
-          </Button>
-        )}
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
