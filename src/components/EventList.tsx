@@ -1,10 +1,10 @@
 
 import React from "react";
-import { format } from "date-fns";
 import { Clock, Calendar, Trash2 } from "lucide-react";
 import { Event } from "@/pages/Calendar";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { formatDateCapitalized } from "@/utils/dateUtils";
 
 type EventListProps = {
   events: Event[];
@@ -62,12 +62,12 @@ const EventList = ({ events, onDeleteEvent }: EventListProps) => {
           <div className="flex flex-col gap-1 mt-2">
             <div className="flex items-center text-sm text-muted-foreground">
               <Calendar className="h-3.5 w-3.5 mr-1" />
-              {format(event.date, "d 'de' MMMM 'de' yyyy")}
+              {formatDateCapitalized(event.date, "d 'de' MMMM 'de' yyyy")}
             </div>
             
             <div className="flex items-center text-sm text-muted-foreground">
               <Clock className="h-3.5 w-3.5 mr-1" />
-              {format(event.date, "HH:mm")}
+              {formatDateCapitalized(event.date, "HH:mm")}
             </div>
           </div>
           

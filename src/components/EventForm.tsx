@@ -1,10 +1,10 @@
-
-import React, { useState } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 import { Event } from "@/pages/Calendar";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { formatDateCapitalized } from "@/utils/dateUtils";
 
 const formSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -112,7 +113,7 @@ const EventForm = ({ onAddEvent, selectedDate }: EventFormProps) => {
                       )}
                     >
                       {field.value ? (
-                        format(field.value, "PPP")
+                        formatDateCapitalized(field.value, "PPP")
                       ) : (
                         <span>Selecione uma data</span>
                       )}
@@ -126,6 +127,7 @@ const EventForm = ({ onAddEvent, selectedDate }: EventFormProps) => {
                     selected={field.value}
                     onSelect={field.onChange}
                     initialFocus
+                    locale={ptBR}
                     className="p-3 pointer-events-auto"
                   />
                 </PopoverContent>

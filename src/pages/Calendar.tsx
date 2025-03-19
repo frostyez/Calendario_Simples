@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import EventForm from "@/components/EventForm";
 import EventList from "@/components/EventList";
+import { formatDateCapitalized } from "@/utils/dateUtils";
 
 export type Event = {
   id: string;
@@ -44,8 +45,8 @@ const Calendar = () => {
         setEvents(parsedEvents);
       }
     } catch (error) {
-      console.error("Error loading events:", error);
-      toast.error("Error loading events");
+      console.error("Erro ao carregar eventos:", error);
+      toast.error("Erro ao carregar eventos");
     } finally {
       setLoading(false);
     }
@@ -69,7 +70,7 @@ const Calendar = () => {
   const handleDeleteEvent = async (id: string) => {
     // Remove from localStorage
     setEvents(events.filter(event => event.id !== id));
-    toast.success("Event removed successfully!");
+    toast.success("Evento removido com sucesso!");
   };
 
   const selectedDateEvents = events.filter(
@@ -82,14 +83,14 @@ const Calendar = () => {
   return (
     <div className="container mx-auto p-4 max-w-6xl animate-fade-in">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-light text-center">Calendário Minimalista</h1>
+        <h1 className="text-3xl font-light text-center">Calendário</h1>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         <Card className="md:col-span-7 border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xl font-light">
-              {format(date, "MMMM yyyy")}
+              {formatDateCapitalized(date, "MMMM yyyy")}
             </CardTitle>
             <div className="flex space-x-2">
               <Button 
@@ -122,6 +123,7 @@ const Calendar = () => {
               selected={date}
               onSelect={(newDate) => newDate && setDate(newDate)}
               className="rounded-md"
+                            locale={ptBR}
               components={{
                 DayContent: (props) => {
                   const currentDate = props.date;
@@ -154,7 +156,7 @@ const Calendar = () => {
         <Card className="md:col-span-5 border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xl font-light">
-              {format(date, "MMMM yyyy")}
+              {formatDateCapitalized(date, "MMMM yyyy")}
             </CardTitle>
             <div className="flex space-x-2">
               <Button 
@@ -193,7 +195,7 @@ const Calendar = () => {
                 </h3>
               ) : (
                 <h3 className="text-sm font-medium text-muted-foreground mb-4">
-                  {format(date, "d 'de' MMMM 'de' yyyy")}
+                  {formatDateCapitalized(date, "d 'de' MMMM 'de' yyyy")}
                 </h3>
               )}
             </div>
